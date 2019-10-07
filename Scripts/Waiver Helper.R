@@ -1,8 +1,5 @@
 library(tidyverse)
 library(ffanalytics)
-library(XML)
-library(RCurl)
-library(vroom)
 library(fs)
 
 #Insert own Roster
