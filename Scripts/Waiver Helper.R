@@ -28,7 +28,7 @@ my_team <- my_projections %>%
 
 # Waiver Helper
 dir <- dir_ls(str_c(getwd(), "/Taken Players Fantasypros"))
-available_players <- read_csv(dir)
+available_players <- read_csv(dir) #Searching for a way to get it easier than downloading and saving as .csv
 available_players <- available_players %>% 
   select(Overall) %>% 
   rename("Name" = Overall)
