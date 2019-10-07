@@ -5,15 +5,18 @@ library(RCurl)
 library(vroom)
 library(fs)
 
-rednecks <- c("Deshaun Watson", "Aaron Jones", "Nick Chubb", "Robby Anderson", "Chris Godwin", "Delanie Walker", "Jaylen Samuels", "Royce Freeman", "Damien Harris", "Randall Cobb", "A.J. Brown", "Courtland Sutton", "Joey Slye", "Nick Williams", "Cory Littleton", "Antoine Bethea")
+#Insert own Roster
+rednecks <- c("Deshaun Watson", "Aaron Jones", "Nick Chubb", "Robby Anderson", "Chris Godwin", "Delanie Walker", "Jaylen Samuels", "Royce Freeman", "Antonio Callaway", "Randall Cobb", "A.J. Brown", "Courtland Sutton", "Joey Slye", "Nick Williams", "Cory Littleton", "Antoine Bethea")
 
+#Scrape Total Data
 raw_data <- scrape_data(src = c("ESPN", "FantasyPros", "FantasySharks", "Yahoo", "FantasyFootballNerd", "NFL"),
                         pos = c("QB", "RB", "WR", "TE", "K", "DL", "DB", "LB"),
                         season = 2019,
-                        week = 5)
+                        week = 5) #Set correct week
 
 my_projections <- projections_table(raw_data)
 
+#Make tibble for own team
 my_team <- my_projections %>% 
   add_player_info() %>% 
   mutate("name" = str_c(first_name, " ", last_name),
@@ -23,6 +26,7 @@ my_team <- my_projections %>%
   select(name, position, team, points, pos_rank, floor, ceiling) %>% 
   mutate(type = "my team")
 
+#Prepare for starting Lineup (apply own league Settings)
 rb <- my_team %>% 
   filter(position == "RB") %>%
   arrange(desc(points)) %>% 
@@ -91,32 +95,3 @@ ggplot(roster, na.rm = TRUE)+
         panel.grid.major.y = element_blank(),
         plot.background = element_blank(),
         panel.background = element_blank())
-
-
-# Waiver Helper
-dir <- dir_ls(str_c(getwd(), "/Taken Players Fantasypros"))
-available_players <- read_csv(dir)
-available_players <- available_players %>% 
-  select(Overall) %>% 
-  rename("Name" = Overall)
-available_players <- as_vector(available_players)
-
-waiver_helper <- my_projections %>% 
-  add_player_info() %>% 
-  mutate(name = str_c(first_name, " ", last_name),
-         position = ifelse(position %in% c("CB", "S"), "DB", ifelse(position %in% c("DT", "DE"), "DL", position)),
-         type = "waiver") %>% 
-  filter(name %in% available_players,
-         avg_type == "weighted") %>% 
-  select(name, position, team, points, pos_rank, floor, ceiling, type) %>% 
-  arrange(desc(points)) 
-
-#Waiver Plot
-plottable <- bind_rows(my_team, waiver_helper) %>% 
-  head(35)
-
-ggplot(plottable)+
-  geom_point(aes(reorder(name, points, mean), points, shape = type, colour = position, size = 2))+
-  coord_flip()
-
-
