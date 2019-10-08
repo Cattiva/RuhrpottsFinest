@@ -1,18 +1,15 @@
 library(tidyverse)
 library(ffanalytics)
-library(XML)
-library(RCurl)
-library(vroom)
 library(fs)
 
 #Insert own Roster
 rednecks <- c("Deshaun Watson", "Aaron Jones", "Nick Chubb", "Robby Anderson", "Chris Godwin", "Delanie Walker", "Jaylen Samuels", "Royce Freeman", "Antonio Callaway", "Randall Cobb", "A.J. Brown", "Courtland Sutton", "Joey Slye", "Nick Williams", "Cory Littleton", "Antoine Bethea")
 
 #Scrape Total Data
-raw_data <- scrape_data(src = c("ESPN", "FantasyPros", "FantasySharks", "Yahoo", "FantasyFootballNerd", "NFL"),
+raw_data <- scrape_data(src = c("ESPN", "FantasyPros", "CBS", "FantasyFootballNerd", "NFL"),
                         pos = c("QB", "RB", "WR", "TE", "K", "DL", "DB", "LB"),
                         season = 2019,
-                        week = 5) #Set correct week
+                        week = 6) #Set correct week
 
 my_projections <- projections_table(raw_data)
 
