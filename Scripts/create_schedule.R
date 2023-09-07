@@ -1,27 +1,26 @@
 #League Schedule
-library(magrittr)
 
 league <- tibble::tribble(
      ~team, ~division,
-       "Metzkausen Mermaids","Division 3",
+      "Rentfort Rentners","Division 1",
             "First Claas","Division 2",
-            "Rust Rhinos","Division 3",
-         "FAITHFUL 49ers","Division 2",
-  "Tremonia Trash Pandas","Division 3",
-         "Texas Rattlers","Division 2",
-            "Hilden Fins","Division 2",
-        "Saints Gladbeck","Division 3",
-          "Green Kickers","Division 3",
+            "Rusted Rhinos","Division 2",
+         "FAITHFUL 49ers","Division 3",
+  "Tremonia Trash Pandas","Division 1",
+         "Texas Rattlers","Division 3",
+       "Ratingen Raiders","Division 2",
+        "Saints Gladbeck","Division 2",
+          "Green Kickers","Division 2",
        "Ragnar's Raiders","Division 1",
-            "BWS Bottrop","Division 3",
-    "Clearwater Manatees","Division 2",
-   "Seahawks Ellinghorst","Division 1",
-             "FlyingPats","Division 2",
-               "juju 1st","Division 1",
-             "Flyingfins","Division 1",
-        "Witten Warriors","Division 1",
+            "BWS Bottrop","Division 1",
+    "Clearwater Manatees","Division 3",
+   "Seahawks Ellinghorst","Division 3",
+             "FlyingPats","Division 1",
+               "juju 1st","Division 3",
+             "Flyingfins","Division 2",
+        "Havixbeck Hawks","Division 3",
         "Bottrop Dragons","Division 1"
-  ) %>% 
+  )  |> 
   dplyr::arrange(team)
 
 create_intradivision_schedule <- function(selected_division){
