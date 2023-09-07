@@ -3,183 +3,169 @@ library(magrittr)
 
 league <- tibble::tribble(
      ~team, ~division,
-       "Metzkausen Mermaids","Division 3",
-            "First Claas","Division 2",
-            "Rust Rhinos","Division 3",
-         "FAITHFUL 49ers","Division 2",
-  "Tremonia Trash Pandas","Division 3",
-         "Texas Rattlers","Division 2",
-            "Hilden Fins","Division 2",
-        "Saints Gladbeck","Division 3",
-          "Green Kickers","Division 3",
-       "Ragnar's Raiders","Division 1",
-            "BWS Bottrop","Division 3",
-    "Clearwater Manatees","Division 2",
-   "Seahawks Ellinghorst","Division 1",
-             "FlyingPats","Division 2",
-               "juju 1st","Division 1",
-             "Flyingfins","Division 1",
-        "Witten Warriors","Division 1",
-        "Bottrop Dragons","Division 1"
+      "Rentfort Rentners",1,
+            "First Claas",1,
+            "Rust Rhinos",1,
+         "FAITHFUL 49ers",2,
+  "Tremonia Trash Pandas",3,
+         "Texas Rattlers",2,
+            "Hilden Fins",3,
+        "Saints Gladbeck",1,
+          "Green Kickers",2,
+       "Ragnar's Raiders",3,
+            "BWS Bottrop",2,
+    "Clearwater Manatees",1,
+   "Seahawks Ellinghorst",3,
+             "FlyingPats",2,
+               "juju 1st",1,
+             "Flyingfins",3,
+        "Witten Warriors",2,
+        "Bottrop Dragons",3
   ) %>% 
   dplyr::arrange(team)
 
-create_intradivision_schedule <- function(selected_division){
-  div <- league %>% 
-    dplyr::filter(division %in% selected_division) %>% 
-    dplyr::pull(team)
+
+
+divisions <- league |>
+  dplyr::group_by(division) |> 
+  dplyr::group_split()
+
+
+# Round Robin -------------------------------------------------------------
+
+create_divisional_schedule <- function(division){
+
+  div <- divisions[[division]] |> 
+    dplyr::add_rownames(var = "id") 
   
-  no_of_games <- length(div)-1
-  no_of_games_per_week <- length(div)/2
+fix <- 1 # Gesetztes Team
+n_teams <- 6 # Wie viele Teams insgesamt
+teams <- c(fix:n_teams) # Liste der Teams
+round <- teams[teams!=fix] # Beweglicher Teil der Turnierrunde
+
+output <- c(1:n_teams) # Initialer Output des ersten Spieltages
+
+
+for (w in (1:(n_teams-2))){ # -2 weil wir die initiale Woche schon haben
+  new_round <- rep(0,n_teams-1)
+if (w == 1){
+for (i in seq_along(round)){
+  if(i <= (length(round) - w)){
+    new_round[i+1] <- round[i] 
+  } else {
+    new_round[w] <- round[i]
+  } 
+}
+} else {
+  for (i in seq_along(round)){
+    if(i <= (length(round)-1)){
+      new_round[i+1] <- round[i] 
+    } else {
+      new_round[1] <- round[i]
+    } 
+  } 
   
-  n <- length(div)
-  teams <- div
-  r <- (length(div)-1)*2
   
-  
-  rounds <- list()
-  for( i in 1:r){
-    round <- 
-      tibble::tibble(
-        round = i,
-        team1 = teams[1:(n/2)], 
-        team2 = rev(teams)[1:(n/2)])
-    rounds[[i]] <- round
-    teams <- c( teams[1],  dplyr::last(teams), head(teams[-1],-1) ) 
-  }
-  
-  rr <- dplyr::bind_rows(rounds) %>% 
-    dplyr::mutate(division = selected_division)
-  return(rr)
-  
+}
+  round <- new_round
+  output <- cbind(output, c(fix, new_round))
 }
 
 
-intradivision <- purrr::map_df(unique(teams$division), create_intradivision_schedule)
-
-groups <- list()
-available_teams <- league$team
-
-create_interdivision_schedule <- function(team_selection){
+build_schedule <- function(gameweek){
   
-  #print(team_selection)
+  home <- output[1:(n_teams/2),gameweek]
+  away <- rev(output[((n_teams /2)+1):n_teams,gameweek])
   
-  if(length(groups)>0){
-  check_enough_games <- groups %>% 
-    unlist() %>% 
-    table() %>% 
-    dplyr::as_tibble() %>% 
-    dplyr::filter(n >=4) %>% 
-    dplyr::pull(.)
-  
-  if(any(available_teams %in% check_enough_games)){
-    available_teams <<- available_teams[available_teams != check_enough_games]
-  }
-  if(team_selection %in% check_enough_games){
-    return()
-  }
-  
-  }
-  available_teams <<- available_teams[available_teams != team_selection]
-  
-  sample_size <- 4 - (groups %>% unlist() %>% .[. == team_selection] %>% length())
-  
-  if(sample_size <= 1){return()}
-  
-  main_team <- team_selection
-  division_main_team <- league %>% 
-    dplyr::filter(team == main_team) %>% 
-    dplyr::pull(division)
-  available_matchups <- league %>%
-    dplyr::filter(team %in% available_teams,
-                  !division %in% division_main_team) %>% 
-    dplyr::pull(team)
-    
-  subgroup <- sample(available_matchups, size = sample_size)
-  
-  groups[[main_team]] <<- subgroup
-  
-  for(i in names(groups)){
-    already_plays <- c()
-  if(main_team %in% groups[[i]]){
-    already_plays <- c(already_plays, names(groups[i]))
-  }
-  }
-  
-  if(any(already_plays %in% subgroup)){
-    subgroup <- sample(dplyr::pull(league[!league$team %in% c(main_team, already_plays),1]))
-  }
-  
-  schedule <- tibble::tibble(
-    team1 = main_team,
-    team2 = subgroup
-  )
-  
-  return(schedule)
+  tibble::tibble(games = stringr::str_c(home, away, sep = "-"),
+                 week = gameweek) |> 
+    tidyr::separate(col = games,
+                    sep = "-",
+                    into = c("home", "away"))
 }
 
-n <- 0
-while(any(n != 4)){
-interdivision <- purrr::map(league$team, purrr::safely(create_interdivision_schedule)) 
-  results <- purrr::transpose(interdivision)[["result"]] %>% 
-  do.call(rbind, .)
-n <- results %>% 
-  tidyr::pivot_longer(names_to = "team", values_to = "name", cols = c(1,2))%>% 
-  dplyr::count(name) %>% 
-  dplyr::pull(n)
-groups <- list()
-available_teams <- league$team
+schedule_home <- purrr::map_df(1:(n_teams-1), build_schedule)
+
+schedule_away <- schedule_home |> 
+  dplyr::mutate(week = week + 7) |> 
+  dplyr::rename("home" = away,
+                "away" = home)
+
+schedule_intradivision <- dplyr::bind_rows(schedule_home,
+                                           schedule_away) |> 
+  dplyr::left_join(div[,c("team", "id")], by = c("home" = "id")) |> 
+  dplyr::left_join(div[,c("team", "id")], by = c("away" = "id")) |> 
+  dplyr::select(week, 
+                home = "team.x", 
+                away = "team.y") 
+
+return(schedule_intradivision)
+
 }
 
+intradivision_schedule <- purrr::map_df(1:3, create_divisional_schedule) 
 
-full_schedule <-  dplyr::bind_rows(intradivision, results) %>% 
-  dplyr::rename("week" = round)
 
-schedule_by_team <- list()
 
-correct_schedule <- function(selection){
-  
-  print(selection)
-  team_schedule <- full_schedule %>% 
-  dplyr::filter(team1 %in% selection |
-                  team2 %in% selection) %>% 
-  dplyr::arrange(week) %>%
-  tibble::rowid_to_column() 
-  
-  print(team_schedule)
-  
-  missing_weeks <- c(1:14)[!c(1:14) %in% team_schedule$week]
-  
-  check_enemy_schedule <- full_schedule %>% 
-    dplyr::filter(team1 %in% selection |
-                    team2 %in% selection) %>% 
-    dplyr::filter(is.na(week)) %>% 
-    tidyr::pivot_longer(cols = c(2,3),
-                        names_to = "what",
-                        values_to = "team") %>% 
-    dplyr::filter(team != selection) %>% 
-    dplyr::pull(team)
-  
-    team_schedule <- team_schedule %>% 
-    dplyr::filter(!is.na(week)) %>% 
-    dplyr::bind_rows(., filled_missing_weeks) %>% 
-    dplyr::arrange(week) %>% 
-    dplyr::select(-rowid)
-  
-  schedule_by_team[[selection]] <<- team_schedule
-#max_week <- team_schedule %>% 
-#  dplyr::pull(week) %>% 
-#  max(na.rm = T)
-#
-#missing <- nrow(team_schedule %>% dplyr::filter(is.na(week)))
 
-full_schedule <<- full_schedule %>% 
-  dplyr::filter(team1 != selection,
-                team2 != selection) %>% 
-  dplyr::bind_rows(., team_schedule)
-return(full_schedule)
-}
 
-purrr::map_df(league$team, correct_schedule)
+# Create Interdivisional --------------------------------------------------
 
-writexl::write_xlsx(schedule_by_team, "team_schedule.xlsx")
+
+## First Part Week 6 and 13 --------------------------------------------------------------
+
+pairs1 <- tibble::tibble(
+  home = unlist(divisions[[1]][1:3,1]),
+  away = unlist(divisions[[2]][1:3,1]),
+  week = 6)
+
+pairs2 <- tibble::tibble(
+  home = unlist(divisions[[1]][4:6,1]),
+  away = unlist(divisions[[3]][4:6,1]),
+  week = 6
+)
+
+pairs3 <- tibble::tibble(
+  home = unlist(divisions[[2]][4:6,1]),
+  away = unlist(divisions[[3]][1:3,1]),
+  week = 6
+)
+
+w6 <- rbind(pairs1, pairs2, pairs3)
+w13 <- w6 |> 
+  dplyr::mutate(week = week + 7) |> 
+  dplyr::rename("home" = away,
+                "away" = home)
+
+
+# Second Part Week 7 and 14 -------------------------------------------------------------
+
+pairs1_2 <- tibble::tibble(
+  home = unlist(divisions[[1]][1:3,1]),
+  away = unlist(divisions[[3]][1:3,1]),
+  week = 7)
+
+pairs2_2 <- tibble::tibble(
+  home = unlist(divisions[[1]][4:6,1]),
+  away = unlist(divisions[[2]][4:6,1]),
+  week = 7
+)
+
+pairs3_2 <- tibble::tibble(
+  home = unlist(divisions[[2]][1:3,1]),
+  away = unlist(divisions[[3]][4:6,1]),
+  week = 7
+)
+
+w7 <- rbind(pairs1_2, pairs2_2, pairs3_2)
+w14 <- w7 |> 
+  dplyr::mutate(week = week + 7) |> 
+  dplyr::rename("home" = away,
+                "away" = home)
+
+
+full_schedule <- rbind(intradivision_schedule, w6, w7, w13, w14) |> 
+  dplyr::group_by(week) |> 
+  dplyr::group_split()
+
+
