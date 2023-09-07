@@ -1,5 +1,4 @@
 #League Schedule
-library(magrittr)
 
 league <- tibble::tribble(
      ~team, ~division,
